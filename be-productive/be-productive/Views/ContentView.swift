@@ -10,7 +10,7 @@ struct ContentView: View {
                 NavigationLink(destination: TodoListView(viewContext: viewContext), tag: "todos", selection: $selection) {
                     Label("Todos", systemImage: "list.bullet")
                 }
-                NavigationLink(destination: HabitTrackerView(), tag: "habits", selection: $selection) {
+                NavigationLink(destination: HabitTrackerView(viewContext: viewContext), tag: "habits", selection: $selection) {
                     Label("Habits", systemImage: "calendar")
                 }
                 NavigationLink(destination: PomodoroTimerView(), tag: "pomodoro", selection: $selection) {
