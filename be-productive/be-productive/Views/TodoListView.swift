@@ -26,8 +26,15 @@ struct TodoListView: View {
                         Button(action: { viewModel.toggleTodoCompletion(todo) }) {
                             Image(systemName: todo.isCompleted ? "checkmark.square" : "square")
                         }
-                        Text(todo.title ?? "")
-                            .strikethrough(todo.isCompleted)
+                        VStack(alignment: .leading) {
+                            Text(todo.title ?? "")
+                                .strikethrough(todo.isCompleted)
+                            if let completionDate = todo.completionDate {
+                                Text("Completed: \(completionDate, formatter: itemFormatter)")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
                     }
                 }
                 .onDelete(perform: deleteTodos)
@@ -49,6 +56,13 @@ struct TodoListView: View {
         }
     }
 }
+
+private let itemFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .short
+    return formatter
+}()
 
 struct TodoListView_Previews: PreviewProvider {
     static var previews: some View {

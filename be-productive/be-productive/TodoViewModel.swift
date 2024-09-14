@@ -38,6 +38,7 @@ class TodoViewModel: ObservableObject {
 
     func toggleTodoCompletion(_ todo: Todo) {
         todo.isCompleted.toggle()
+        todo.completionDate = todo.isCompleted ? Date() : nil
         do {
             try viewContext.save()
             fetchTodos()
