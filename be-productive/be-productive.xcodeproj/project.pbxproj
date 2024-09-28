@@ -16,6 +16,14 @@
 		69A9C9F82C9605E30052B74E /* be_productiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9C9F72C9605E30052B74E /* be_productiveTests.swift */; };
 		69A9CA022C9605E30052B74E /* be_productiveUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA012C9605E30052B74E /* be_productiveUITests.swift */; };
 		69A9CA042C9605E30052B74E /* be_productiveUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA032C9605E30052B74E /* be_productiveUITestsLaunchTests.swift */; };
+		69A9CA122C9606980052B74E /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA112C9606980052B74E /* StatusBarController.swift */; };
+		69A9CA152C960A940052B74E /* TodoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA142C960A940052B74E /* TodoListView.swift */; };
+		69A9CA172C960AA10052B74E /* HabitTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA162C960AA10052B74E /* HabitTrackerView.swift */; };
+		69A9CA192C960AAB0052B74E /* PomodoroTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA182C960AAB0052B74E /* PomodoroTimerView.swift */; };
+		69A9CA1B2C960AB60052B74E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA1A2C960AB60052B74E /* SettingsView.swift */; };
+		69A9CA202C960C780052B74E /* PomodoroSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA1F2C960C780052B74E /* PomodoroSessionViewModel.swift */; };
+		69A9CA222C9611DB0052B74E /* TodoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA212C9611DA0052B74E /* TodoViewModel.swift */; };
+		69A9CA242C9615560052B74E /* HabitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9CA232C9615560052B74E /* HabitViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +57,14 @@
 		69A9C9FD2C9605E30052B74E /* be-productiveUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "be-productiveUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		69A9CA012C9605E30052B74E /* be_productiveUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = be_productiveUITests.swift; sourceTree = "<group>"; };
 		69A9CA032C9605E30052B74E /* be_productiveUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = be_productiveUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		69A9CA112C9606980052B74E /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
+		69A9CA142C960A940052B74E /* TodoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListView.swift; sourceTree = "<group>"; };
+		69A9CA162C960AA10052B74E /* HabitTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitTrackerView.swift; sourceTree = "<group>"; };
+		69A9CA182C960AAB0052B74E /* PomodoroTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroTimerView.swift; sourceTree = "<group>"; };
+		69A9CA1A2C960AB60052B74E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		69A9CA1F2C960C780052B74E /* PomodoroSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroSessionViewModel.swift; sourceTree = "<group>"; };
+		69A9CA212C9611DA0052B74E /* TodoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoViewModel.swift; sourceTree = "<group>"; };
+		69A9CA232C9615560052B74E /* HabitViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,13 +115,17 @@
 		69A9C9DF2C9605E10052B74E /* be-productive */ = {
 			isa = PBXGroup;
 			children = (
+				69A9CA1F2C960C780052B74E /* PomodoroSessionViewModel.swift */,
+				69A9CA132C960A6B0052B74E /* Views */,
+				69A9CA102C9606820052B74E /* Services */,
 				69A9C9E02C9605E10052B74E /* be_productiveApp.swift */,
-				69A9C9E22C9605E10052B74E /* ContentView.swift */,
 				69A9C9E42C9605E30052B74E /* Assets.xcassets */,
 				69A9C9E92C9605E30052B74E /* Persistence.swift */,
 				69A9C9EE2C9605E30052B74E /* be_productive.entitlements */,
 				69A9C9EB2C9605E30052B74E /* be_productive.xcdatamodeld */,
 				69A9C9E62C9605E30052B74E /* Preview Content */,
+				69A9CA212C9611DA0052B74E /* TodoViewModel.swift */,
+				69A9CA232C9615560052B74E /* HabitViewModel.swift */,
 			);
 			path = "be-productive";
 			sourceTree = "<group>";
@@ -133,6 +153,26 @@
 				69A9CA032C9605E30052B74E /* be_productiveUITestsLaunchTests.swift */,
 			);
 			path = "be-productiveUITests";
+			sourceTree = "<group>";
+		};
+		69A9CA102C9606820052B74E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				69A9CA112C9606980052B74E /* StatusBarController.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		69A9CA132C960A6B0052B74E /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				69A9C9E22C9605E10052B74E /* ContentView.swift */,
+				69A9CA142C960A940052B74E /* TodoListView.swift */,
+				69A9CA162C960AA10052B74E /* HabitTrackerView.swift */,
+				69A9CA182C960AAB0052B74E /* PomodoroTimerView.swift */,
+				69A9CA1A2C960AB60052B74E /* SettingsView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -267,7 +307,15 @@
 			files = (
 				69A9C9EA2C9605E30052B74E /* Persistence.swift in Sources */,
 				69A9C9ED2C9605E30052B74E /* be_productive.xcdatamodeld in Sources */,
+				69A9CA172C960AA10052B74E /* HabitTrackerView.swift in Sources */,
+				69A9CA242C9615560052B74E /* HabitViewModel.swift in Sources */,
+				69A9CA1B2C960AB60052B74E /* SettingsView.swift in Sources */,
+				69A9CA152C960A940052B74E /* TodoListView.swift in Sources */,
 				69A9C9E32C9605E10052B74E /* ContentView.swift in Sources */,
+				69A9CA192C960AAB0052B74E /* PomodoroTimerView.swift in Sources */,
+				69A9CA122C9606980052B74E /* StatusBarController.swift in Sources */,
+				69A9CA202C960C780052B74E /* PomodoroSessionViewModel.swift in Sources */,
+				69A9CA222C9611DB0052B74E /* TodoViewModel.swift in Sources */,
 				69A9C9E12C9605E10052B74E /* be_productiveApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

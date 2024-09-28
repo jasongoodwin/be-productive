@@ -1,0 +1,725 @@
+File: ./be-productive/be-productive/be_productiveApp.swift
+import SwiftUI
+
+@main
+struct be_productiveApp: App {
+    let persistenceController = PersistenceController.shared
+    @StateObject private var statusBar: StatusBarController
+    
+    init() {
+        let popover = NSPopover()
+        popover.contentSize = NSSize(width: 700, height: 400)
+        popover.behavior = .transient
+        popover.contentViewController = NSHostingController(rootView: ContentView().environment(\.managedObjectContext, persistenceController.container.viewContext))
+        
+        _statusBar = StateObject(wrappedValue: StatusBarController(popover))
+    }
+
+    var body: some Scene {
+        Settings {
+            EmptyView()
+        }
+    }
+}
+
+
+
+File: ./be-productive/be-productive/PomodoroSessionViewModel.swift
+import Foundation
+import CoreData
+
+class PomodoroSessionViewModel: ObservableObject {
+    @Published var completedSessions: [PomodoroSession] = []
+    
+    private var viewContext: NSManagedObjectContext
+    
+    init(viewContext: NSManagedObjectContext) {
+        self.viewContext = viewContext
+        fetchCompletedSessions()
+    }
+    
+    func fetchCompletedSessions() {
+        let request: NSFetchRequest<PomodoroSession> = PomodoroSession.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \PomodoroSession.endTime, ascending: false)]
+        
+        do {
+            completedSessions = try viewContext.fetch(request)
+        } catch {
+            print("Error fetching completed sessions: \(error)")
+        }
+    }
+    
+    func addCompletedSession(task: String, duration: Int, completedAt: Date) {
+        let newSession = PomodoroSession(context: viewContext)
+        newSession.id = UUID()
+        newSession.task = task
+        newSession.duration = Int32(duration)
+        newSession.endTime = completedAt
+        
+        do {
+            try viewContext.save()
+            fetchCompletedSessions()
+        } catch {
+            print("Error saving completed session: \(error)")
+        }
+    }
+}
+
+
+File: ./be-productive/be-productive/Persistence.swift
+import CoreData
+
+struct PersistenceController {
+    static let shared = PersistenceController()
+
+    static var preview: PersistenceController = {
+        let result = PersistenceController(inMemory: true)
+        let viewContext = result.container.viewContext
+        for i in 0..<5 {
+            let newTodo = Todo(context: viewContext)
+            newTodo.id = UUID()
+            newTodo.title = "Sample Todo \(i)"
+            newTodo.isCompleted = Bool.random()
+            newTodo.creationDate = Date()
+        }
+        do {
+            try viewContext.save()
+        } catch {
+            let nsError = error as NSError
+            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        }
+        return result
+    }()
+
+    let container: NSPersistentContainer
+
+    init(inMemory: Bool = false) {
+        container = NSPersistentContainer(name: "be_productive")
+        if inMemory {
+            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        }
+        container.loadPersistentStores { (storeDescription, error) in
+            if let error = error as NSError? {
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        }
+        container.viewContext.automaticallyMergesChangesFromParent = true
+    }
+    
+    func save() {
+        let context = container.viewContext
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+                let nsError = error as NSError
+                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            }
+        }
+    }
+}
+
+
+File: ./be-productive/be-productive/TodoViewModel.swift
+import Foundation
+import CoreData
+
+class TodoViewModel: ObservableObject {
+    @Published var todos: [Todo] = []
+    private var viewContext: NSManagedObjectContext
+
+    init(viewContext: NSManagedObjectContext) {
+        self.viewContext = viewContext
+        fetchTodos()
+    }
+
+    func fetchTodos() {
+        let request: NSFetchRequest<Todo> = Todo.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Todo.creationDate, ascending: false)]
+
+        do {
+            todos = try viewContext.fetch(request)
+        } catch {
+            print("Error fetching todos: \(error)")
+        }
+    }
+
+    func addTodo(title: String) {
+        let newTodo = Todo(context: viewContext)
+        newTodo.id = UUID()
+        newTodo.title = title
+        newTodo.isCompleted = false
+        newTodo.creationDate = Date()
+
+        do {
+            try viewContext.save()
+            fetchTodos()
+        } catch {
+            print("Error adding todo: \(error)")
+        }
+    }
+
+    func toggleTodoCompletion(_ todo: Todo) {
+        todo.isCompleted.toggle()
+        todo.completionDate = todo.isCompleted ? Date() : nil
+        do {
+            try viewContext.save()
+            fetchTodos()
+        } catch {
+            print("Error updating todo: \(error)")
+        }
+    }
+
+    func deleteTodo(_ todo: Todo) {
+        viewContext.delete(todo)
+        do {
+            try viewContext.save()
+            fetchTodos()
+        } catch {
+            print("Error deleting todo: \(error)")
+        }
+    }
+}
+
+
+File: ./be-productive/be-productive/HabitViewModel.swift
+import Foundation
+import CoreData
+
+class HabitViewModel: ObservableObject {
+    @Published var habits: [Habit] = []
+    private var viewContext: NSManagedObjectContext
+
+    init(viewContext: NSManagedObjectContext) {
+        self.viewContext = viewContext
+        fetchHabits()
+    }
+
+    func fetchHabits() {
+        let request: NSFetchRequest<Habit> = Habit.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Habit.creationDate, ascending: false)]
+
+        do {
+            habits = try viewContext.fetch(request)
+            updateHabitsStatus() // Check and update status for each habit
+        } catch {
+            print("Error fetching habits: \(error)")
+        }
+    }
+
+    func addHabit(title: String) {
+        let newHabit = Habit(context: viewContext)
+        newHabit.id = UUID()
+        newHabit.title = title
+        newHabit.creationDate = Date()
+        newHabit.isCompleted = false
+        newHabit.streak = 0
+
+        do {
+            try viewContext.save()
+            fetchHabits()
+        } catch {
+            print("Error adding habit: \(error)")
+        }
+    }
+
+    func toggleHabitCompletion(_ habit: Habit) {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        if !habit.isCompleted {
+            habit.isCompleted = true
+            habit.completionDate = today
+            habit.streak += 1
+        } else {
+            habit.isCompleted = false
+            habit.completionDate = nil
+            habit.streak = max(0, habit.streak - 1)
+        }
+
+        do {
+            try viewContext.save()
+            fetchHabits()
+        } catch {
+            print("Error updating habit: \(error)")
+        }
+    }
+
+    func deleteHabit(_ habit: Habit) {
+        viewContext.delete(habit)
+        do {
+            try viewContext.save()
+            fetchHabits()
+        } catch {
+            print("Error deleting habit: \(error)")
+        }
+    }
+
+    private func updateHabitsStatus() {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        for habit in habits {
+            if let completionDate = habit.completionDate,
+               !Calendar.current.isDate(completionDate, inSameDayAs: today) {
+                habit.isCompleted = false
+                if Calendar.current.isDateInYesterday(completionDate) {
+                    // Streak continues
+                } else {
+                    // Streak breaks
+                    habit.streak = 0
+                }
+            }
+        }
+        
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error updating habits status: \(error)")
+        }
+    }
+
+    func isHabitCompletedToday(_ habit: Habit) -> Bool {
+        return habit.isCompleted
+    }
+}
+
+
+File: ./be-productive/be-productive/Views/PomodoroTimerView.swift
+import SwiftUI
+
+struct PomodoroTimerView: View {
+    @State private var timeRemaining = 25 * 60 // 25 minutes in seconds
+    @State private var isActive = false
+    @State private var isWorkSession = true
+    @State private var workDuration = 25
+    @State private var breakDuration = 5
+    
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(isWorkSession ? "Work Session" : "Break Session")
+                .font(.headline)
+            
+            Text(timeString(time: timeRemaining))
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .padding()
+            
+            HStack {
+                Button(action: startStop) {
+                    Text(isActive ? "Pause" : "Start")
+                        .padding()
+                        .background(isActive ? Color.red : Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                
+                Button(action: reset) {
+                    Text("Reset")
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+            }
+            
+            VStack {
+                Stepper("Work duration: \(workDuration) min", value: $workDuration, in: 1...60)
+                Stepper("Break duration: \(breakDuration) min", value: $breakDuration, in: 1...30)
+            }
+            .padding()
+        }
+        .frame(width: 400)
+        .padding()
+        .onReceive(timer) { _ in
+            if isActive {
+                if timeRemaining > 0 {
+                    timeRemaining -= 1
+                } else {
+                    isWorkSession.toggle()
+                    timeRemaining = (isWorkSession ? workDuration : breakDuration) * 60
+                    // Here you could add a notification sound or alert
+                }
+            }
+        }
+    }
+    
+    func startStop() {
+        isActive.toggle()
+    }
+    
+    func reset() {
+        isActive = false
+        isWorkSession = true
+        timeRemaining = workDuration * 60
+    }
+    
+    func timeString(time: Int) -> String {
+        let minutes = time / 60
+        let seconds = time % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+struct PomodoroTimerView_Previews: PreviewProvider {
+    static var previews: some View {
+        PomodoroTimerView()
+    }
+}
+
+
+File: ./be-productive/be-productive/Views/SettingsView.swift
+import SwiftUI
+
+struct SettingsView: View {
+    var body: some View {
+        Text("Settings View")
+    }
+}
+
+struct SettingsView_Previews: PreviewProvider {
+    static var previews: some View {
+        SettingsView()
+    }
+}
+
+
+File: ./be-productive/be-productive/Views/HabitTrackerView.swift
+import SwiftUI
+
+struct HabitTrackerView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var viewModel: HabitViewModel
+    @State private var newHabitTitle = ""
+
+    init(viewContext: NSManagedObjectContext) {
+        _viewModel = StateObject(wrappedValue: HabitViewModel(viewContext: viewContext))
+    }
+
+    var body: some View {
+        VStack {
+            HStack {
+                TextField("New habit", text: $newHabitTitle)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                Button(action: addHabit) {
+                    Text("Add")
+                }
+            }
+            .padding()
+
+            List {
+                ForEach(viewModel.habits) { habit in
+                    HStack {
+                        Button(action: { viewModel.toggleHabitCompletion(habit) }) {
+                            Image(systemName: viewModel.isHabitCompletedToday(habit) ? "checkmark.square" : "square")
+                        }
+                        VStack(alignment: .leading) {
+                            Text(habit.title ?? "")
+                            Text("Streak: \(habit.streak) days")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .onDelete(perform: deleteHabits)
+            }
+        }
+        .navigationTitle("Habit Tracker")
+        .onAppear {
+            viewModel.fetchHabits() // Refresh habits and their status when view appears
+        }
+    }
+
+    private func addHabit() {
+        withAnimation {
+            viewModel.addHabit(title: newHabitTitle)
+            newHabitTitle = ""
+        }
+    }
+
+    private func deleteHabits(offsets: IndexSet) {
+        withAnimation {
+            offsets.map { viewModel.habits[$0] }.forEach(viewModel.deleteHabit)
+        }
+    }
+}
+
+struct HabitTrackerView_Previews: PreviewProvider {
+    static var previews: some View {
+        HabitTrackerView(viewContext: PersistenceController.preview.container.viewContext)
+    }
+}
+
+
+File: ./be-productive/be-productive/Views/TodoListView.swift
+import SwiftUI
+
+struct TodoListView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var viewModel: TodoViewModel
+    @State private var newTodoTitle = ""
+
+    init(viewContext: NSManagedObjectContext) {
+        _viewModel = StateObject(wrappedValue: TodoViewModel(viewContext: viewContext))
+    }
+
+    var body: some View {
+        VStack {
+            HStack {
+                TextField("New todo", text: $newTodoTitle)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                Button(action: addTodo) {
+                    Text("Add")
+                }
+            }
+            .padding()
+
+            List {
+                ForEach(viewModel.todos) { todo in
+                    HStack {
+                        Button(action: { viewModel.toggleTodoCompletion(todo) }) {
+                            Image(systemName: todo.isCompleted ? "checkmark.square" : "square")
+                        }
+                        VStack(alignment: .leading) {
+                            Text(todo.title ?? "")
+                                .strikethrough(todo.isCompleted)
+                            if let completionDate = todo.completionDate {
+                                Text("Completed: \(completionDate, formatter: itemFormatter)")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                }
+                .onDelete(perform: deleteTodos)
+            }
+        }
+        .navigationTitle("Todo List")
+    }
+
+    private func addTodo() {
+        withAnimation {
+            viewModel.addTodo(title: newTodoTitle)
+            newTodoTitle = ""
+        }
+    }
+
+    private func deleteTodos(offsets: IndexSet) {
+        withAnimation {
+            offsets.map { viewModel.todos[$0] }.forEach(viewModel.deleteTodo)
+        }
+    }
+}
+
+private let itemFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .short
+    return formatter
+}()
+
+struct TodoListView_Previews: PreviewProvider {
+    static var previews: some View {
+        TodoListView(viewContext: PersistenceController.preview.container.viewContext)
+    }
+}
+
+
+File: ./be-productive/be-productive/Views/ContentView.swift
+import SwiftUI
+
+struct ContentView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var selection: String? = "todos"
+    
+    var body: some View {
+        NavigationView {
+            List {
+                NavigationLink(destination: TodoListView(viewContext: viewContext), tag: "todos", selection: $selection) {
+                    Label("Todos", systemImage: "list.bullet")
+                }
+                NavigationLink(destination: HabitTrackerView(viewContext: viewContext), tag: "habits", selection: $selection) {
+                    Label("Habits", systemImage: "calendar")
+                }
+                NavigationLink(destination: PomodoroTimerView(), tag: "pomodoro", selection: $selection) {
+                    Label("Pomodoro", systemImage: "timer")
+                }
+                NavigationLink(destination: SettingsView(), tag: "settings", selection: $selection) {
+                    Label("Settings", systemImage: "gear")
+                }
+            }
+            .listStyle(SidebarListStyle())
+            .frame(minWidth: 150, idealWidth: 250, maxWidth: 300)
+            
+            Text("Select an item")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    }
+}
+
+
+File: ./be-productive/be-productive/Services/StatusBarController.swift
+import AppKit
+import SwiftUI
+
+class StatusBarController: ObservableObject {
+    private var statusBar: NSStatusBar
+    private var statusItem: NSStatusItem
+    private var popover: NSPopover
+    
+    init(_ popover: NSPopover) {
+        self.popover = popover
+        statusBar = NSStatusBar.system
+        statusItem = statusBar.statusItem(withLength: NSStatusItem.squareLength)
+        
+        if let statusBarButton = statusItem.button {
+            statusBarButton.image = NSImage(systemSymbolName: "checkmark.circle", accessibilityDescription: "Productivity App")
+            statusBarButton.action = #selector(togglePopover)
+            statusBarButton.target = self
+        }
+    }
+    
+    @objc func togglePopover() {
+        if popover.isShown {
+            hidePopover()
+        } else {
+            showPopover()
+        }
+    }
+    
+    func showPopover() {
+        if let statusBarButton = statusItem.button {
+            popover.show(relativeTo: statusBarButton.bounds, of: statusBarButton, preferredEdge: NSRectEdge.minY)
+        }
+    }
+    
+    func hidePopover() {
+        popover.performClose(nil)
+    }
+}
+
+
+File: ./be-productive/be-productiveUITests/be_productiveUITests.swift
+//
+//  be_productiveUITests.swift
+//  be-productiveUITests
+//
+//  Created by Jason Goodwin on 2024-09-14.
+//
+
+import XCTest
+
+final class be_productiveUITests: XCTestCase {
+
+    override func setUpWithError() throws {
+        // Put setup code here. This method is called before the invocation of each test method in the class.
+
+        // In UI tests it is usually best to stop immediately when a failure occurs.
+        continueAfterFailure = false
+
+        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+    }
+
+    override func tearDownWithError() throws {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    }
+
+    func testExample() throws {
+        // UI tests must launch the application that they test.
+        let app = XCUIApplication()
+        app.launch()
+
+        // Use XCTAssert and related functions to verify your tests produce the correct results.
+    }
+
+    func testLaunchPerformance() throws {
+        if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
+            // This measures how long it takes to launch your application.
+            measure(metrics: [XCTApplicationLaunchMetric()]) {
+                XCUIApplication().launch()
+            }
+        }
+    }
+}
+
+
+File: ./be-productive/be-productiveUITests/be_productiveUITestsLaunchTests.swift
+//
+//  be_productiveUITestsLaunchTests.swift
+//  be-productiveUITests
+//
+//  Created by Jason Goodwin on 2024-09-14.
+//
+
+import XCTest
+
+final class be_productiveUITestsLaunchTests: XCTestCase {
+
+    override class var runsForEachTargetApplicationUIConfiguration: Bool {
+        true
+    }
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    func testLaunch() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        // Insert steps here to perform after app launch but before taking a screenshot,
+        // such as logging into a test account or navigating somewhere in the app
+
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Launch Screen"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}
+
+
+File: ./be-productive/be-productiveTests/be_productiveTests.swift
+//
+//  be_productiveTests.swift
+//  be-productiveTests
+//
+//  Created by Jason Goodwin on 2024-09-14.
+//
+
+import XCTest
+@testable import be_productive
+
+final class be_productiveTests: XCTestCase {
+
+    override func setUpWithError() throws {
+        // Put setup code here. This method is called before the invocation of each test method in the class.
+    }
+
+    override func tearDownWithError() throws {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    }
+
+    func testExample() throws {
+        // This is an example of a functional test case.
+        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        // Any test you write for XCTest can be annotated as throws and async.
+        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
+        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    }
+
+    func testPerformanceExample() throws {
+        // This is an example of a performance test case.
+        self.measure {
+            // Put the code you want to measure the time of here.
+        }
+    }
+
+}
+
+
